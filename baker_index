@@ -1,0 +1,124 @@
+
+<?php
+require_once 'Core/model.php';
+require_once 'Core/handleforms.php';
+require_once 'validate.php';
+require_once 'Core/GOMEZ_Db_Config.php';
+
+if (!isset($_SESSION['username'])) {
+    header("Location: User/login.php");
+    exit;
+}
+
+$bakers = seeAllBakers($pdo);
+?>
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Pastry Supplier System</title>
+</head>
+<body>
+
+    <p>
+        Hello! <?= e($_SESSION['username']) ?>
+        <a href="Core/handleforms.php?logoutUserA=1">Logout</a>
+    </p>
+
+    <h1 id="title">Pastry Supplier System</h1>
+
+    <h2>Baker Form</h2>
+
+    <form action="Core/handleforms.php" method="POST">
+
+        <label>Baker Name:</label><br>
+        <input type="text" name="baker_name" required><br><br>
+
+        <label>Contact Number:</label><br>
+        <input type="text" name="contact_number" required><br><br>
+
+        <label>Specialization Type:</label><br>
+        <input type="text"
+               name="specialization_type"
+               placeholder="e.g. Cakes, Bread, Pastries"
+               required><br><br>
+
+        <button type="submit" name="insertBakerBtn">
+            Add Baker
+        </button>
+
+    </form>
+
+    <hr>
+
+    <h2>Registered Bakers</h2>
+
+    <table border="1" cellpadding="8" cellspacing="0">
+
+        <tr>
+            <th>Baker ID</th>
+            <th>Baker Name</th>
+            <th>Contact Number</th>
+            <th>Specialization Type</th>
+            <th>Date Added</th>
+            <th>Added By</th>
+            <th>Last Updated By</th>
+            <th>Last Updated</th>
+            <th>Action</th>
+        </tr>
+
+        <?php foreach ($bakers as $row) { ?>
+
+            <tr>
+                <td><?= e($row['baker_id']) ?></td>
+
+                <td><?= e($row['baker_name']) ?></td>
+
+                <td><?= e($row['contact_number']) ?></td>
+
+                <td><?= e($row['specialization_type']) ?></td>
+
+                <td><?= e($row['date_added']) ?></td>
+
+                <td><?= e($row['added_by']) ?></td>
+
+                <td>
+                    <?= e($row['last_updated_by'] ?? 'Not yet updated') ?>
+                </td>
+
+                <td>
+                    <?= e($row['last_updated'] ?? 'Not yet updated') ?>
+                </td>
+
+                <td>
+                    <p>
+                        <a href="client_index.php">
+                            Manage All Clients
+                        </a>
+                    </p>
+
+                    <a href="baker_edit.php?baker_id=<?= urlencode((string)$row['baker_id']) ?>">
+                        Edit
+                    </a>
+
+                    |
+
+                    <a href="baker_delete.php?baker_id=<?= urlencode((string)$row['baker_id']) ?>">
+                        Delete
+                    </a>
+
+                    |
+
+                    <a href="view_all.php?baker_id=<?= urlencode((string)$row['baker_id']) ?>">
+                        View Clients
+                    </a>
+                </td>
+            </tr>
+
+        <?php } ?>
+
+    </table>
+
+</body>
+</html>
