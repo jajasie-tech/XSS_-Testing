@@ -1,0 +1,224 @@
+<?php
+
+function e($value) {
+    return htmlspecialchars(
+        (string)($value ?? ''),
+        ENT_QUOTES | ENT_SUBSTITUTE,
+        'UTF-8'
+    );
+}
+
+function insertBaker($pdo, $bakerName, $contactNumber,
+    $specializationType, $addedBy) {
+
+    $sql = "INSERT INTO baker
+    (baker_name, contact_number, specialization_type, added_by)
+    VALUES (?, ?, ?, ?)";
+
+    $stmt = $pdo->prepare($sql);
+
+    return $stmt->execute([
+        $bakerName, $contactNumber, $specializationType, $addedBy
+    ]);
+}
+
+function seeAllBakers($pdo) {
+    $sql = "SELECT * FROM baker
+            ORDER BY baker_id DESC";
+
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute();
+
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+
+function getBakerByID($pdo, $bakerID) {
+    $sql = "SELECT * FROM baker
+            WHERE baker_id = ?";
+
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute([$bakerID]);
+
+    return $stmt->fetch(PDO::FETCH_ASSOC);
+}
+
+function updateBaker($pdo, $bakerID,
+    $bakerName, $contactNumber, $specializationType, $updatedBy) {
+
+    $sql = "UPDATE baker SET
+        baker_name = ?,
+        contact_number = ?,
+        specialization_type = ?,
+        last_updated_by = ?,
+        last_updated = CURRENT_TIMESTAMP
+        WHERE baker_id = ?";
+
+    $stmt = $pdo->prepare($sql);
+
+    return $stmt->execute([
+        $bakerName, $contactNumber, $specializationType,
+        $updatedBy, $bakerID
+    ]);
+}
+
+function deleteBaker($pdo, $bakerID) {
+
+    $sql = "DELETE FROM client
+            WHERE baker_id = ?";
+
+    $stmt = $pdo->prepare($sql);
+
+    if ($stmt->execute([$bakerID])) {
+
+        $sql = "DELETE FROM baker
+                WHERE baker_id = ?";
+
+        $stmt = $pdo->prepare($sql);
+
+        return $stmt->execute([$bakerID]);
+    }
+
+    return false;
+}
+
+function insertClient($pdo, $bakerID, $clientName,
+    $contactNumber, $location, $orderType, $addedBy) {
+
+    $sql = "INSERT INTO client
+    (baker_id, client_name, contact_number, location, order_type, added_by)
+    VALUES (?, ?, ?, ?, ?, ?)";
+
+    $stmt = $pdo->prepare($sql);
+
+    return $stmt->execute([
+        $bakerID, $clientName, $contactNumber,
+        $location, $orderType, $addedBy
+    ]);
+}
+
+function seeAllClientsByBakerID($pdo, $bakerID) {
+    $sql = "SELECT * FROM client
+            WHERE baker_id = ?
+            ORDER BY client_id DESC";
+
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute([$bakerID]);
+
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+
+function getClientByID($pdo, $clientID) {
+    $sql = "SELECT * FROM client
+            WHERE client_id = ?";
+
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute([$clientID]);
+
+    return $stmt->fetch(PDO::FETCH_ASSOC);
+}
+
+function updateClient($pdo, $clientID, $bakerID,
+    $clientName, $contactNumber, $location, $orderType, $updatedBy) {
+
+    $sql = "UPDATE client SET
+        baker_id = ?,
+        client_name = ?,
+        contact_number = ?,
+        location = ?,
+        order_type = ?,
+        last_updated_by = ?,
+        last_updated = CURRENT_TIMESTAMP
+        WHERE client_id = ?";
+
+    $stmt = $pdo->prepare($sql);
+
+    return $stmt->execute([
+        $bakerID, $clientName, $contactNumber,
+        $location, $orderType, $updatedBy, $clientID
+    ]);
+}
+
+function deleteClient($pdo, $clientID) {
+    $sql = "DELETE FROM client
+            WHERE client_id = ?";
+
+    $stmt = $pdo->prepare($sql);
+
+    return $stmt->execute([$clientID]);
+}
+
+
+function insertNewUser($pdo, $username, $password) {
+
+    $checkUserSql = "SELECT * FROM user_passwords WHERE username = ?";
+    $checkUserSqlStmt = $pdo->prepare($checkUserSql);
+    $checkUserSqlStmt->execute([$username]);
+
+    if ($checkUserSqlStmt->fetch()) {
+        $_SESSION['message'] = "User already exists";
+        return false;
+    }
+
+    $sql = "INSERT INTO user_passwords (username, password)
+            VALUES (?, ?)";
+
+    $stmt = $pdo->prepare($sql);
+
+    if ($stmt->execute([$username, $password])) {
+        $_SESSION['message'] = "User successfully inserted";
+        return true;
+    }
+
+    $_SESSION['message'] = "Error occurred, please try again";
+    return false;
+}
+
+
+function loginUser($pdo, $username, $password) {
+
+    $sql = "SELECT * FROM user_passwords WHERE username = ?";
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute([$username]);
+
+    $userInfoRow = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    if (!$userInfoRow) {
+        $_SESSION['message'] = "Username/password invalid";
+        return false;
+    }
+
+    $passwordFromDB = $userInfoRow['password'];
+
+    // Check passwords stored using password_hash()
+    $passwordIsValid = password_verify($password, $passwordFromDB);
+
+    // Support existing SHA-1 accounts during migration
+    if (!$passwordIsValid &&
+        hash_equals($passwordFromDB, sha1($password))) {
+
+        $newPasswordHash = password_hash($password, PASSWORD_DEFAULT);
+
+        $updateSql = "UPDATE user_passwords
+                      SET password = ?
+                      WHERE username = ?";
+
+        $updateStmt = $pdo->prepare($updateSql);
+        $updateStmt->execute([$newPasswordHash, $username]);
+
+        $passwordIsValid = true;
+    }
+
+    if ($passwordIsValid) {
+        session_regenerate_id(true);
+
+        $_SESSION['username'] = $userInfoRow['username'];
+        $_SESSION['message'] = "Login successful!";
+
+        return true;
+    }
+
+    $_SESSION['message'] = "Username/password invalid";
+    return false;
+}
+
+?>
