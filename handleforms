@@ -1,0 +1,264 @@
+<?php
+
+require_once 'GOMEZ_Db_Config.php';
+require_once 'model.php';
+require_once 'validate.php';
+
+function cleanInput($value) {
+    return trim($value ?? "");
+}
+
+function applicationInputsAreValid($fields) {
+    foreach ($fields as $field) {
+        if ($field === "") {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+// INSERT BAKER
+if (isset($_POST['insertBakerBtn'])) {
+
+    $bakerName = cleanInput($_POST['baker_name'] ?? '');
+    $contactNumber = cleanInput($_POST['contact_number'] ?? '');
+    $specializationType = cleanInput($_POST['specialization_type'] ?? '');
+
+    $fields = [
+        $bakerName, $contactNumber, $specializationType
+    ];
+
+    if (applicationInputsAreValid($fields)) {
+
+        $query = insertBaker(
+    $pdo, $bakerName, $contactNumber,
+    $specializationType, $_SESSION['username']  
+);
+
+        if ($query) {
+            header("Location: ../baker_index.php");
+            exit;
+        }
+    }
+
+    echo "Baker insertion failed. Check your inputs.";
+}
+
+// UPDATE BAKER
+if (isset($_POST['updateBakerBtn'])) {
+
+    $bakerID = filter_input(
+        INPUT_POST, 'baker_id', FILTER_VALIDATE_INT
+    );
+
+    $bakerName = cleanInput($_POST['baker_name'] ?? '');
+    $contactNumber = cleanInput($_POST['contact_number'] ?? '');
+    $specializationType = cleanInput($_POST['specialization_type'] ?? '');
+
+    $fields = [
+        $bakerName, $contactNumber, $specializationType
+    ];
+
+    if ($bakerID && applicationInputsAreValid($fields)) {
+
+        $query = updateBaker(
+    $pdo, $bakerID, $bakerName,
+    $contactNumber, $specializationType,
+    $_SESSION['username']
+);
+
+        if ($query) {
+            header("Location: ../baker_index.php");
+            exit;
+        }
+    }
+
+    echo "Baker update failed. Check your inputs.";
+}
+
+// DELETE BAKER
+if (isset($_POST['deleteBakerBtn'])) {
+
+    $bakerID = filter_input(
+        INPUT_POST, 'baker_id', FILTER_VALIDATE_INT
+    );
+
+    if ($bakerID) {
+        $query = deleteBaker($pdo, $bakerID);
+
+        if ($query) {
+            header("Location: ../baker_index.php");
+            exit;
+        }
+    }
+
+    echo "Baker deletion failed.";
+}
+
+// INSERT CLIENT
+if (isset($_POST['insertClientBtn'])) {
+
+    $bakerID = filter_input(
+        INPUT_POST, 'baker_id', FILTER_VALIDATE_INT
+    );
+
+    $clientName = cleanInput($_POST['client_name'] ?? '');
+    $contactNumber = cleanInput($_POST['contact_number'] ?? '');
+    $location = cleanInput($_POST['location'] ?? '');
+    $orderType = cleanInput($_POST['order_type'] ?? '');
+
+    $fields = [
+        $clientName, $contactNumber, $location, $orderType
+    ];
+
+    if ($bakerID && applicationInputsAreValid($fields)) {
+
+        $query = insertClient(
+    $pdo, $bakerID, $clientName,
+    $contactNumber, $location, $orderType,
+    $_SESSION['username']
+);
+
+        if ($query) {
+            header("Location: ../client_index.php?baker_id=" . $bakerID);
+            exit;
+        }
+    }
+
+    echo "Client insertion failed. Check your inputs.";
+}
+
+// UPDATE CLIENT
+if (isset($_POST['updateClientBtn'])) {
+
+    $clientID = filter_input(
+        INPUT_POST, 'client_id', FILTER_VALIDATE_INT
+    );
+
+    $bakerID = filter_input(
+        INPUT_POST, 'baker_id', FILTER_VALIDATE_INT
+    );
+
+    $clientName = cleanInput($_POST['client_name'] ?? '');
+    $contactNumber = cleanInput($_POST['contact_number'] ?? '');
+    $location = cleanInput($_POST['location'] ?? '');
+    $orderType = cleanInput($_POST['order_type'] ?? '');
+
+    $fields = [
+        $clientName, $contactNumber, $location, $orderType
+    ];
+
+    if ($clientID && $bakerID
+        && applicationInputsAreValid($fields)) {
+
+        $query = updateClient(
+    $pdo, $clientID, $bakerID, $clientName,
+    $contactNumber, $location, $orderType,
+    $_SESSION['username']
+);
+
+        if ($query) {
+            header("Location: ../view_all.php?baker_id=" . $bakerID);
+            exit;
+        }
+    }
+
+    echo "Client update failed. Check your inputs.";
+}
+
+// DELETE CLIENT
+if (isset($_POST['deleteClientBtn'])) {
+
+    $clientID = filter_input(
+        INPUT_POST, 'client_id', FILTER_VALIDATE_INT
+    );
+
+    $bakerID = filter_input(
+        INPUT_POST, 'baker_id', FILTER_VALIDATE_INT
+    );
+
+    if ($clientID && $bakerID) {
+        $query = deleteClient($pdo, $clientID);
+
+        if ($query) {
+            header("Location: ../view_all.php?baker_id=" . $bakerID);
+            exit;
+        }
+    }
+
+    echo "Client deletion failed.";
+}
+
+   
+if (isset($_POST['registerUserBtn'])) {
+
+    $username = trim($_POST['username'] ?? '');
+    $password = $_POST['password'] ?? '';
+
+    if ($username === '' || $password === '') {
+
+        $_SESSION['message'] = "Please fill in all fields.";
+        header("Location: ../User/register.php");
+        exit;
+
+    }
+
+    if (!validatePassword($password)) {
+
+        $_SESSION['message'] = "Password must have at least 8 characters, including one uppercase letter, one lowercase letter, and one number.";
+
+        header("Location: ../User/register.php");
+        exit;
+    }
+
+    $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
+
+    $insertQuery = insertNewUser(
+        $pdo,
+        $username,
+        $hashedPassword
+    );
+
+    if ($insertQuery) {
+        header("Location: ../User/login.php");
+        exit;
+    } else {
+        header("Location: ../User/register.php");
+        exit;
+    }
+}
+
+
+if (isset($_POST['loginUserBtn'])) {
+
+    $username = trim($_POST['username'] ?? '');
+    $password = $_POST['password'] ?? '';
+
+    if ($username === '' || $password === '') {
+
+        $_SESSION['message'] = "Please enter your username and password.";
+
+        header("Location: ../User/login.php");
+        exit;
+    }
+
+    $loginQuery = loginUser($pdo, $username, $password);
+
+    if ($loginQuery) {
+        header("Location: ../baker_index.php");
+        exit;
+    } else {
+        header("Location: ../User/login.php");
+        exit;
+    }
+}
+
+
+if (isset($_GET['logoutUserA'])) {
+    unset($_SESSION['username']);
+    header("Location: ../User/login.php");
+    exit();
+}
+
+?>
