@@ -1,0 +1,41 @@
+<?php
+require_once '../core/model.php';
+require_once '../core/handleforms.php';
+?>
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+
+    <?php if (isset($_SESSION['message'])) { ?>
+        <h1 style="color: red;">
+            <?php echo $_SESSION['message']; ?>
+        </h1>
+    <?php unset($_SESSION['message']); } ?>
+
+    <form action="../core/handleforms.php" method="POST">
+        <p>
+            <label for="username">Username</label>
+            <input type="text" name="username">
+        </p>
+
+        <p>
+            <label for="username">Password</label>
+            <input type="password"
+                    name="password"
+                    minlength="8"
+                    pattern="(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9]).{8,}"
+                    title="Password must contain at least 8 characters, including one uppercase letter, one lowercase letter, and one number."
+                required>
+            <p> Password must have at least 8 characters,including uppercase, lowercase, and numbers. </p>
+            <input type="submit" name="registerUserBtn">
+        </p>
+    </form>
+
+</body>
+</html>
